@@ -59,7 +59,9 @@ The application attempts verification using three methods in order of reliabilit
    yarn
    ```
 
-3. Set up environment variables:
+3. Set up environment variables (only required for smart contract deployment):
+   - **For regular users** who just want to use the application to verify age proofs: No environment variables are needed.
+   - **For developers** who want to deploy or modify the smart contracts: The environment variables are required.
    - Create a `.env` file in the root directory
    - Add the following variables:
    ```
