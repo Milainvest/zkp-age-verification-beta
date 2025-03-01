@@ -230,13 +230,6 @@ function App() {
         throw new Error("Invalid proof format");
       }
 
-      console.log("Raw proof data:", {
-        pi_a,
-        pi_b,
-        pi_c,
-        publicSignals
-      });
-
       // Check if a value is within uint256 range
       const MAX_UINT256 = BigInt('0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff');
       const isValidUint256 = (value: bigint) => value >= 0 && value <= MAX_UINT256;
@@ -248,7 +241,6 @@ function App() {
         if (!pA.every(isValidUint256)) {
           throw new Error(`pA contains values outside uint256 range`);
         }
-        console.log("pA formatted:", pA.map(n => n.toString()));
         
         // For pB, we need to swap the order of elements in each pair
         const pB = [
@@ -258,34 +250,28 @@ function App() {
         if (!pB.every(row => row.every(isValidUint256))) {
           throw new Error(`pB contains values outside uint256 range`);
         }
-        console.log("pB formatted:", pB.map(row => row.map(n => n.toString())));
         
         const pC = [toBigNumber(pi_c[0]), toBigNumber(pi_c[1])];
         if (!pC.every(isValidUint256)) {
           throw new Error(`pC contains values outside uint256 range`);
         }
-        console.log("pC formatted:", pC.map(n => n.toString()));
         
         const pubSignals = [toBigNumber(publicSignals[0])];
         if (!pubSignals.every(isValidUint256)) {
           throw new Error(`pubSignals contains values outside uint256 range`);
         }
-        console.log("pubSignals formatted:", pubSignals.map(n => n.toString()));
         
         // Store the publicSignal value for age verification
         const publicSignalValue = pubSignals[0].toString();
         const isOver18 = publicSignalValue === "1";
-        console.log("Public signal value:", publicSignalValue, "Is over 18:", isOver18);
 
         // Call the contract's verifyProof function - using the most reliable method first
-        console.log("Calling contract with formatted parameters");
         
         // Based on previous success, start with the simulation approach
         try {
           // Method 1: Transaction simulation (previously most successful)
           const tx = await contract.verifyProof.populateTransaction(pA, pB, pC, pubSignals);
           const simResult = await provider.call(tx);
-          console.log("Simulation result:", simResult);
           
           // Check if we got a valid result
           if (simResult === "0x" || simResult === "0x0000000000000000000000000000000000000000000000000000000000000001") {
@@ -322,7 +308,7 @@ function App() {
             return;
           }
         } catch (simError) {
-          console.log("Simulation approach failed, trying low-level call");
+          // Simulation approach failed, try low-level call
         }
         
         // Method 2: Low-level call
@@ -339,8 +325,6 @@ function App() {
             to: contractAddress,
             data: callData
           });
-          
-          console.log("Raw call result:", rawCallResult);
           
           if (rawCallResult === "0x0000000000000000000000000000000000000000000000000000000000000001") {
             const endTime = performance.now();
@@ -376,13 +360,12 @@ function App() {
             return;
           }
         } catch (rawCallError) {
-          console.log("Low-level call failed, trying standard method");
+          // Low-level call failed, try standard method
         }
         
         // Method 3: Standard contract call (least reliable but simplest)
         try {
           const result = await contract.verifyProof(pA, pB, pC, pubSignals);
-          console.log("Standard call result:", result);
           
           const endTime = performance.now();
           setVerificationStatus({
