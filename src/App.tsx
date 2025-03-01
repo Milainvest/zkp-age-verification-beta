@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef, DragEvent } from "react";
 import { ethers } from "ethers";
 import "./App.css";
 
@@ -22,6 +22,27 @@ type VerificationStatus = {
     error?: string;
     publicSignalValue?: string;
   };
+};
+
+// Define tutorial step type
+type TutorialStep = {
+  title: string;
+  content: string;
+  position: 'top' | 'bottom' | 'left' | 'right';
+  style?: React.CSSProperties;
+};
+
+// Define FAQ item type
+type FAQItem = {
+  question: string;
+  answer: string;
+};
+
+// Add new type for the proof generation guide
+type ProofGenerationStep = {
+  title: string;
+  content: string;
+  code?: string;
 };
 
 const contractAddress: string = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
@@ -63,6 +84,110 @@ const contractABI: any[] = [
   }
 ];
 
+// Tutorial steps
+const tutorialSteps: TutorialStep[] = [
+  {
+    title: "Welcome to ZKP Age Verification",
+    content: "This tutorial will guide you through the process of verifying your age without revealing your personal information using Zero-Knowledge Proofs.",
+    position: "bottom",
+    style: { top: "100px", left: "50%", transform: "translateX(-50%)" }
+  },
+  {
+    title: "Connect Your Wallet",
+    content: "First, connect your Ethereum wallet by clicking the 'Connect Wallet' button. This is required to verify your identity on the blockchain.",
+    position: "bottom",
+    style: { top: "250px", left: "50%", transform: "translateX(-50%)" }
+  },
+  {
+    title: "Upload Your Proof",
+    content: "Upload your proof.json file by dragging it into the upload area or clicking to browse. This file contains your age verification proof without revealing your actual age.",
+    position: "top",
+    style: { bottom: "350px", left: "50%", transform: "translateX(-50%)" }
+  },
+  {
+    title: "Verify Your Age",
+    content: "Once your proof is uploaded, click 'Verify Age' to process the verification. The system will check if you're above the required age without knowing your exact birthdate.",
+    position: "right",
+    style: { top: "50%", left: "30%", transform: "translateY(-50%)" }
+  },
+  {
+    title: "Privacy Protected",
+    content: "Your personal information is never shared or stored. Zero-Knowledge Proofs allow verification without revealing the underlying data, keeping your privacy intact.",
+    position: "left",
+    style: { top: "50%", right: "30%", transform: "translateY(-50%)" }
+  }
+];
+
+// FAQ data
+const faqItems: FAQItem[] = [
+  {
+    question: "What is a Zero-Knowledge Proof?",
+    answer: "A Zero-Knowledge Proof (ZKP) is a cryptographic method that allows one party to prove to another that a statement is true without revealing any additional information. In this application, it proves you're 18+ without revealing your actual age."
+  },
+  {
+    question: "How do I generate a proof.json file?",
+    answer: "The proof.json file is generated using the ZKP generation tools included in this project. Follow these steps:\n\n1. Open a terminal in the project root directory\n\n2. Create an input.json file with your birth date and current date (see example below):\n```json\n{\n  \"birthYear\": 1990,\n  \"birthMonth\": 7,\n  \"birthDay\": 7,\n  \"currentYear\": 2023,\n  \"currentMonth\": 2,\n  \"currentDay\": 28\n}\n```\n\n3. Generate a witness file:\n```bash\nnode others/age_js/generate_witness.js others/age_js/age.wasm input.json witness.wtns\n```\n\n4. Generate the proof:\n```bash\nnpx snarkjs groth16 prove build/ageCheck.zkey witness.wtns proof.json public.json\n```\n\nThe resulting proof.json file can then be uploaded to this application for verification. Note: Make sure to install snarkjs globally using `npm install -g snarkjs` if you haven't already."
+  },
+  {
+    question: "Is my personal information safe?",
+    answer: "Yes. The zero-knowledge proof technology ensures that your actual age is never revealed or stored. The verification process only confirms whether you're 18+ or not, without exposing any personal data."
+  },
+  {
+    question: "Why do I need to connect my wallet?",
+    answer: "Your wallet is used to interact with the verification smart contract on the blockchain. The contract performs the cryptographic verification of your proof without storing any personal data."
+  },
+  {
+    question: "What happens if verification fails?",
+    answer: "Verification can fail for several reasons: the proof file might be invalid, you might not meet the age requirement, or there could be technical issues with the connection. Check the error message for specific details."
+  },
+  {
+    question: "Can I use this verification elsewhere?",
+    answer: "This verification is specific to this application. However, the concept of ZKP age verification can be implemented across various platforms that require age verification while preserving privacy."
+  }
+];
+
+// SVG Icons
+const InfoIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="10"></circle>
+    <line x1="12" y1="16" x2="12" y2="12"></line>
+    <line x1="12" y1="8" x2="12.01" y2="8"></line>
+  </svg>
+);
+
+const QuestionIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="10"></circle>
+    <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+    <line x1="12" y1="17" x2="12.01" y2="17"></line>
+  </svg>
+);
+
+const CloseIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="18" y1="6" x2="6" y2="18"></line>
+    <line x1="6" y1="6" x2="18" y2="18"></line>
+  </svg>
+);
+
+const ChevronLeftIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="15 18 9 12 15 6"></polyline>
+  </svg>
+);
+
+const ChevronRightIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="9 18 15 12 9 6"></polyline>
+  </svg>
+);
+
+const ChevronDownIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="6 9 12 15 18 9"></polyline>
+  </svg>
+);
+
 function App() {
   const [proof, setProof] = useState<ProofData | null>(null);
   const [verificationStatus, setVerificationStatus] = useState<VerificationStatus>({
@@ -73,6 +198,16 @@ function App() {
   });
   const [walletConnected, setWalletConnected] = useState<boolean>(false);
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState<boolean>(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Tutorial and FAQ state
+  const [showTutorial, setShowTutorial] = useState<boolean>(false);
+  const [currentTutorialStep, setCurrentTutorialStep] = useState<number>(0);
+  const [showFAQ, setShowFAQ] = useState<boolean>(false);
+  const [expandedFAQ, setExpandedFAQ] = useState<number | null>(null);
+  // Add new state for proof generation guide
+  const [showProofGuide, setShowProofGuide] = useState(false);
 
   // Check if wallet is already connected on component mount
   useEffect(() => {
@@ -117,28 +252,75 @@ function App() {
   const handleFileUpload = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onload = (e: ProgressEvent<FileReader>) => {
-        const result = e.target?.result;
-        if (typeof result === 'string') {
-          try {
-            const parsedProof = JSON.parse(result);
-            setProof(parsedProof);
-            // Reset verification status when new proof is uploaded
-            setVerificationStatus({
-              result: null,
-              isLoading: false,
-              ageVerified: null,
-              details: {}
-            });
-          } catch (error) {
-            alert("Invalid JSON file. Please upload a valid proof.json file.");
-          }
-        }
-      };
-      reader.readAsText(file);
+      processFile(file);
     }
   }, []);
+
+  // Process the uploaded file
+  const processFile = useCallback((file: File) => {
+    const reader = new FileReader();
+    reader.onload = (e: ProgressEvent<FileReader>) => {
+      const result = e.target?.result;
+      if (typeof result === 'string') {
+        try {
+          const parsedProof = JSON.parse(result);
+          setProof(parsedProof);
+          // Reset verification status when new proof is uploaded
+          setVerificationStatus({
+            result: null,
+            isLoading: false,
+            ageVerified: null,
+            details: {}
+          });
+        } catch (error) {
+          alert("Invalid JSON file. Please upload a valid proof.json file.");
+        }
+      }
+    };
+    reader.readAsText(file);
+  }, []);
+
+  // Handle drag events
+  const handleDragEnter = useCallback((e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  }, []);
+
+  const handleDragOver = useCallback((e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!isDragging) {
+      setIsDragging(true);
+    }
+  }, [isDragging]);
+
+  const handleDrop = useCallback((e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      const file = e.dataTransfer.files[0];
+      // Check if file is JSON
+      if (file.type === "application/json" || file.name.endsWith('.json')) {
+        processFile(file);
+      } else {
+        alert("Please upload a valid JSON file.");
+      }
+    }
+  }, [processFile]);
+
+  // Trigger file input click
+  const triggerFileInput = () => {
+    fileInputRef.current?.click();
+  };
 
   // Connect MetaMask
   const connectWallet = useCallback(async () => {
@@ -199,23 +381,22 @@ function App() {
   // Optimized verification method that prioritizes the successful approach
   const verifyProof = useCallback(async () => {
     if (!proof) {
-      alert("Please upload proof.json");
+      alert("Please upload a proof file first.");
       return;
     }
     
     if (!walletConnected) {
-      alert("Please connect your wallet first");
+      alert("Please connect your wallet first.");
       return;
     }
     
-    // Start timing the verification process
     const startTime = performance.now();
     
     setVerificationStatus({
       result: null,
       isLoading: true,
       ageVerified: null,
-      details: { startTime, error: undefined }
+      details: { startTime }
     });
     
     try {
@@ -430,165 +611,454 @@ function App() {
     return null;
   };
 
+  // Truncate wallet address for display
+  const truncateAddress = (address: string) => {
+    return `${address.substring(0, 6)}...${address.substring(address.length - 4)}`;
+  };
+
+  // Tutorial navigation functions
+  const startTutorial = () => {
+    setShowTutorial(true);
+    setCurrentTutorialStep(0);
+  };
+
+  const nextTutorialStep = () => {
+    if (currentTutorialStep < tutorialSteps.length - 1) {
+      setCurrentTutorialStep(currentTutorialStep + 1);
+    } else {
+      setShowTutorial(false);
+    }
+  };
+
+  const prevTutorialStep = () => {
+    if (currentTutorialStep > 0) {
+      setCurrentTutorialStep(currentTutorialStep - 1);
+    }
+  };
+
+  const closeTutorial = () => {
+    setShowTutorial(false);
+  };
+
+  // FAQ toggle functions
+  const toggleFAQ = () => {
+    setShowFAQ(!showFAQ);
+  };
+
+  const toggleFAQItem = (index: number) => {
+    setExpandedFAQ(expandedFAQ === index ? null : index);
+  };
+
+  // Toggle proof generation guide
+  const toggleProofGuide = () => {
+    setShowProofGuide(!showProofGuide);
+    // Close other overlays if open
+    if (!showProofGuide) {
+      setShowTutorial(false);
+      setShowFAQ(false);
+    }
+  };
+
+  // Define proof generation steps
+  const proofGenerationSteps: ProofGenerationStep[] = [
+    {
+      title: "Prerequisites",
+      content: "Before generating a proof, make sure you have the following installed:",
+      code: "# Install Node.js (if not already installed)\n# Visit https://nodejs.org/\n\n# Install snarkjs globally\nnpm install -g snarkjs"
+    },
+    {
+      title: "Step 1: Create Input File",
+      content: "Create an input.json file with your birth date and the current date. This information will be used to generate a proof that you are 18 years or older without revealing your actual age.",
+      code: "{\n  \"birthYear\": 1990,\n  \"birthMonth\": 7,\n  \"birthDay\": 7,\n  \"currentYear\": 2023,\n  \"currentMonth\": 2,\n  \"currentDay\": 28\n}"
+    },
+    {
+      title: "Step 2: Generate Witness",
+      content: "Generate a witness file using the provided circuit and your input file. This step computes the intermediate values needed for the proof.",
+      code: "node others/age_js/generate_witness.js others/age_js/age.wasm input.json witness.wtns"
+    },
+    {
+      title: "Step 3: Generate Proof",
+      content: "Generate the final proof using the witness file. This creates the proof.json file that you'll upload to the application.",
+      code: "npx snarkjs groth16 prove build/ageCheck.zkey witness.wtns proof.json public.json"
+    },
+    {
+      title: "Step 4: Upload Proof",
+      content: "Upload the generated proof.json file to this application to verify your age. The application will only know whether you are 18+ or not, without learning your actual age or birth date."
+    }
+  ];
+
   return (
-    <div style={{ textAlign: "center", padding: "20px", maxWidth: "800px", margin: "0 auto", fontFamily: "Arial, sans-serif" }}>
-      <h1 style={{ color: "#333", marginBottom: "30px" }}>ZKP Age Verification Dapp</h1>
-      
-      <div style={{ 
-        background: "#f5f5f5", 
-        padding: "20px", 
-        borderRadius: "8px", 
-        marginBottom: "20px",
-        boxShadow: "0 2px 4px rgba(0,0,0,0.1)"
-      }}>
-        <h2 style={{ color: "#444", fontSize: "18px", marginBottom: "15px" }}>Wallet Connection</h2>
-        {walletConnected ? (
-          <div>
-            <p style={{ color: "#4CAF50", fontWeight: "bold" }}>Connected ✓</p>
-            <p style={{ fontSize: "14px", wordBreak: "break-all" }}>Address: {walletAddress}</p>
-          </div>
-        ) : (
-          <button 
-            onClick={connectWallet}
-            style={{
-              background: "#4CAF50",
-              color: "white",
-              border: "none",
-              padding: "10px 20px",
-              borderRadius: "4px",
-              cursor: "pointer",
-              fontSize: "16px"
-            }}
-          >
-            Connect Wallet
+    <div className="app-container">
+      <header className="app-header">
+        <h1>ZKP Age Verification</h1>
+        <div className="header-actions">
+          <button className="secondary-button" onClick={startTutorial}>
+            <InfoIcon /> How It Works
           </button>
-        )}
-      </div>
+          <button className="secondary-button" onClick={toggleFAQ}>
+            <QuestionIcon /> FAQ
+          </button>
+          {/* Add new button for proof generation guide */}
+          <button className="secondary-button" onClick={toggleProofGuide}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="16" y1="13" x2="8" y2="13"></line>
+              <line x1="16" y1="17" x2="8" y2="17"></line>
+              <polyline points="10 9 9 9 8 9"></polyline>
+            </svg> Generate Proof
+          </button>
+        </div>
+      </header>
       
-      <div style={{ 
-        background: "#f5f5f5", 
-        padding: "20px", 
-        borderRadius: "8px", 
-        marginBottom: "20px",
-        boxShadow: "0 2px 4px rgba(0,0,0,0.1)"
-      }}>
-        <h2 style={{ color: "#444", fontSize: "18px", marginBottom: "15px" }}>Proof Upload</h2>
-        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: "10px" }}>
-          <input 
-            type="file" 
-            accept="application/json" 
-            onChange={handleFileUpload}
-            style={{ 
-              padding: "10px", 
-              border: "1px solid #ddd", 
-              borderRadius: "4px",
-              background: "white"
-            }} 
-          />
-          <div style={{ fontSize: "14px", color: proof ? "#4CAF50" : "#999" }}>
-            {proof ? "✓ Proof loaded" : "No proof loaded"}
+      <div className="card-container">
+        {/* Wallet Connection Card */}
+        <div className="card" id="wallet-card">
+          <div className="card-header">
+            <h2>Wallet Connection</h2>
+            <div className="card-icon">
+              <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M19 7h-1V6a3 3 0 0 0-3-3H5a3 3 0 0 0-3 3v12a3 3 0 0 0 3 3h14a3 3 0 0 0 3-3v-8a3 3 0 0 0-3-3zm-1 9h-2v-2h2v2z" />
+              </svg>
+            </div>
+          </div>
+          
+          <div className="card-content">
+            {walletConnected ? (
+              <div className="wallet-info">
+                <div className="wallet-status connected">
+                  <span className="status-dot"></span>
+                  <span>Connected</span>
+                </div>
+                <div className="wallet-address">
+                  <span className="address-label">Address:</span>
+                  <span className="address-value" title={walletAddress || ""}>
+                    {walletAddress ? truncateAddress(walletAddress) : ""}
+                  </span>
+                  <button 
+                    className="copy-button"
+                    onClick={() => {
+                      if (walletAddress) {
+                        navigator.clipboard.writeText(walletAddress);
+                        alert("Address copied to clipboard!");
+                      }
+                    }}
+                  >
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2">
+                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button 
+                className="primary-button"
+                onClick={connectWallet}
+                disabled={verificationStatus.isLoading}
+              >
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h6" />
+                  <path d="M16 2v4h4" />
+                  <path d="M14 4l6 6" />
+                </svg>
+                Connect Wallet
+              </button>
+            )}
+          </div>
+        </div>
+        
+        {/* Proof Upload Card */}
+        <div className="card" id="upload-card">
+          <div className="card-header">
+            <h2>Proof Upload</h2>
+            <div className="card-icon">
+              <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                <polyline points="14 2 14 8 20 8" />
+                <line x1="12" y1="18" x2="12" y2="12" />
+                <line x1="9" y1="15" x2="15" y2="15" />
+              </svg>
+            </div>
+          </div>
+          
+          <div className="card-content">
+            <div 
+              className={`file-upload-container ${isDragging ? 'dragging' : ''}`}
+              onDragEnter={handleDragEnter}
+              onDragLeave={handleDragLeave}
+              onDragOver={handleDragOver}
+              onDrop={handleDrop}
+            >
+              <div 
+                className="file-upload-area"
+                onClick={triggerFileInput}
+              >
+                <input 
+                  type="file" 
+                  accept="application/json" 
+                  onChange={handleFileUpload}
+                  className="file-input"
+                  ref={fileInputRef}
+                />
+                <div className="upload-icon">
+                  <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="17 8 12 3 7 8" />
+                    <line x1="12" y1="3" x2="12" y2="15" />
+                  </svg>
+                </div>
+                <div className="upload-text">
+                  <span className="upload-title">Drag & drop your proof.json file here</span>
+                  <span className="upload-subtitle">or click to browse files</span>
+                </div>
+              </div>
+              
+              <div className={`file-status ${proof ? 'file-loaded' : ''}`}>
+                {proof ? (
+                  <>
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                      <polyline points="22 4 12 14.01 9 11.01" />
+                    </svg>
+                    <span>Proof loaded successfully</span>
+                  </>
+                ) : (
+                  <>
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2">
+                      <circle cx="12" cy="12" r="10" />
+                      <line x1="12" y1="8" x2="12" y2="16" />
+                      <line x1="8" y1="12" x2="16" y2="12" />
+                    </svg>
+                    <span>No proof loaded</span>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        {/* Verification Card */}
+        <div className="card verification-card" id="verification-card">
+          <div className="card-header">
+            <h2>Verification</h2>
+            <div className="card-icon">
+              <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                <polyline points="22 4 12 14.01 9 11.01" />
+              </svg>
+            </div>
+          </div>
+          
+          <div className="card-content">
+            <button 
+              className="primary-button verify-button"
+              onClick={verifyProof} 
+              disabled={!proof || !walletConnected || verificationStatus.isLoading}
+            >
+              {verificationStatus.isLoading ? (
+                <>
+                  <div className="spinner"></div>
+                  <span>Verifying...</span>
+                </>
+              ) : (
+                <>
+                  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                    <polyline points="22 4 12 14.01 9 11.01" />
+                  </svg>
+                  <span>Verify Proof</span>
+                </>
+              )}
+            </button>
+            
+            {verificationStatus.result && (
+              <div className={`verification-result ${verificationStatus.result.includes("✅") ? "success" : "error"}`}>
+                <h3 className="result-title">
+                  {verificationStatus.result}
+                </h3>
+                
+                {/* Age verification message */}
+                {getAgeVerificationMessage() && (
+                  <div className={`age-verification-message ${verificationStatus.ageVerified ? "success" : "error"}`}>
+                    {getAgeVerificationMessage()}
+                  </div>
+                )}
+                
+                <div className="verification-details">
+                  {verificationTime && (
+                    <div className="detail-item">
+                      <span className="detail-label">Verification time:</span>
+                      <span className="detail-value">{verificationTime} seconds</span>
+                    </div>
+                  )}
+                  
+                  {verificationStatus.details.method && (
+                    <div className="detail-item">
+                      <span className="detail-label">Method used:</span>
+                      <span className="detail-value">{verificationStatus.details.method}</span>
+                    </div>
+                  )}
+                  
+                  {verificationStatus.details.publicSignalValue && (
+                    <div className="detail-item">
+                      <span className="detail-label">Public Signal Value:</span>
+                      <span className="detail-value">
+                        {verificationStatus.details.publicSignalValue} 
+                        <span className={`signal-indicator ${verificationStatus.details.publicSignalValue === "1" ? "success" : "error"}`}>
+                          {verificationStatus.details.publicSignalValue === "1" ? " (18+ verified)" : " (Under 18)"}
+                        </span>
+                      </span>
+                    </div>
+                  )}
+                </div>
+                
+                {verificationStatus.details.error && (
+                  <div className="error-message">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2">
+                      <circle cx="12" cy="12" r="10" />
+                      <line x1="12" y1="8" x2="12" y2="12" />
+                      <line x1="12" y1="16" x2="12.01" y2="16" />
+                    </svg>
+                    <span>{verificationStatus.details.error}</span>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>
       
-      <div style={{ 
-        background: "#f5f5f5", 
-        padding: "20px", 
-        borderRadius: "8px", 
-        marginBottom: "20px",
-        boxShadow: "0 2px 4px rgba(0,0,0,0.1)"
-      }}>
-        <h2 style={{ color: "#444", fontSize: "18px", marginBottom: "15px" }}>Verification</h2>
-        <button 
-          onClick={verifyProof} 
-          disabled={!proof || !walletConnected || verificationStatus.isLoading}
-          style={{
-            background: !proof || !walletConnected || verificationStatus.isLoading ? "#cccccc" : "#2196F3",
-            color: "white",
-            border: "none",
-            padding: "12px 24px",
-            borderRadius: "4px",
-            cursor: !proof || !walletConnected || verificationStatus.isLoading ? "not-allowed" : "pointer",
-            fontSize: "16px",
-            fontWeight: "bold",
-            transition: "background 0.3s"
-          }}
-        >
-          {verificationStatus.isLoading ? "Verifying..." : "Verify Proof"}
-        </button>
-        
-        {verificationStatus.result && (
-          <div style={{ 
-            marginTop: "20px", 
-            padding: "15px", 
-            borderRadius: "4px",
-            background: verificationStatus.result.includes("✅") ? "#e8f5e9" : "#ffebee",
-            border: `1px solid ${verificationStatus.result.includes("✅") ? "#a5d6a7" : "#ffcdd2"}`
-          }}>
-            <h3 style={{ 
-              margin: "0 0 10px 0", 
-              color: verificationStatus.result.includes("✅") ? "#2e7d32" : "#c62828",
-              fontSize: "20px"
-            }}>
-              {verificationStatus.result}
-            </h3>
-            
-            {/* Age verification message */}
-            {getAgeVerificationMessage() && (
-              <div style={{
-                margin: "15px 0",
-                padding: "10px",
-                borderRadius: "4px",
-                background: verificationStatus.ageVerified ? "#e8f5e9" : "#ffebee",
-                border: `1px solid ${verificationStatus.ageVerified ? "#a5d6a7" : "#ffcdd2"}`,
-                fontSize: "18px",
-                fontWeight: "bold",
-                color: verificationStatus.ageVerified ? "#2e7d32" : "#c62828"
-              }}>
-                {getAgeVerificationMessage()}
-              </div>
-            )}
-            
-            {verificationTime && (
-              <p style={{ margin: "5px 0", fontSize: "14px" }}>
-                Verification time: {verificationTime} seconds
-              </p>
-            )}
-            
-            {verificationStatus.details.method && (
-              <p style={{ margin: "5px 0", fontSize: "14px" }}>
-                Method used: {verificationStatus.details.method}
-              </p>
-            )}
-            
-            {verificationStatus.details.publicSignalValue && (
-              <p style={{ margin: "5px 0", fontSize: "14px" }}>
-                Public Signal Value: {verificationStatus.details.publicSignalValue} 
-                {verificationStatus.details.publicSignalValue === "1" ? " (18+ verified)" : " (Under 18)"}
-              </p>
-            )}
-            
-            {verificationStatus.details.error && (
-              <p style={{ 
-                margin: "10px 0", 
-                color: "#d32f2f", 
-                fontSize: "14px",
-                background: "#ffebee",
-                padding: "10px",
-                borderRadius: "4px"
-              }}>
-                Error: {verificationStatus.details.error}
-              </p>
-            )}
-          </div>
-        )}
-      </div>
-      
-      <div style={{ fontSize: "14px", color: "#666", marginTop: "30px" }}>
+      <div className="info-section" id="info-section">
+        <h3>About ZKP Age Verification</h3>
         <p>This application verifies zero-knowledge proofs for age verification without revealing the actual age.</p>
         <p>The proof only confirms whether a person is 18 years or older, preserving privacy.</p>
-        <p><strong>Note:</strong> A public signal value of 1 means the person is 18 years or older, while 0 means they are under 18.</p>
+        <div className="info-note">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="16" x2="12" y2="12" />
+            <line x1="12" y1="8" x2="12.01" y2="8" />
+          </svg>
+          <span>A public signal value of 1 means the person is 18 years or older, while 0 means they are under 18.</span>
+        </div>
       </div>
+      
+      {/* Interactive Tutorial */}
+      {showTutorial && (
+        <div className="tutorial-overlay" onClick={closeTutorial}>
+          <div 
+            className={`tutorial-tooltip tutorial-position-${tutorialSteps[currentTutorialStep].position}`} 
+            style={tutorialSteps[currentTutorialStep].style}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="tutorial-header">
+              <h3>{tutorialSteps[currentTutorialStep].title}</h3>
+              <button className="close-button" onClick={closeTutorial}>
+                <CloseIcon />
+              </button>
+            </div>
+            <div className="tutorial-content">
+              <p>{tutorialSteps[currentTutorialStep].content}</p>
+            </div>
+            <div className="tutorial-navigation">
+              <div className="tutorial-progress">
+                {tutorialSteps.map((_, index) => (
+                  <div 
+                    key={index} 
+                    className={`tutorial-dot ${index === currentTutorialStep ? 'active' : ''}`}
+                  />
+                ))}
+              </div>
+              <div className="tutorial-buttons">
+                {currentTutorialStep > 0 && (
+                  <button className="tutorial-button" onClick={prevTutorialStep}>
+                    <ChevronLeftIcon /> Previous
+                  </button>
+                )}
+                {currentTutorialStep < tutorialSteps.length - 1 ? (
+                  <button className="tutorial-button primary" onClick={nextTutorialStep}>
+                    Next <ChevronRightIcon />
+                  </button>
+                ) : (
+                  <button className="tutorial-button primary" onClick={closeTutorial}>
+                    Got it!
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* FAQ Section */}
+      {showFAQ && (
+        <div className="faq-overlay" onClick={toggleFAQ}>
+          <div className="faq-container" onClick={(e) => e.stopPropagation()}>
+            <div className="faq-header">
+              <h2>Frequently Asked Questions</h2>
+              <button className="close-button" onClick={toggleFAQ}>
+                <CloseIcon />
+              </button>
+            </div>
+            <div className="faq-content">
+              {faqItems.map((item, index) => (
+                <div 
+                  key={index} 
+                  className={`faq-item ${expandedFAQ === index ? 'expanded' : ''}`}
+                >
+                  <div className="faq-question" onClick={() => toggleFAQItem(index)}>
+                    <h3>{item.question}</h3>
+                    <span className="faq-icon">
+                      <ChevronDownIcon />
+                    </span>
+                  </div>
+                  {expandedFAQ === index && (
+                    <div className="faq-answer">
+                      <p style={{ textAlign: 'left' }}>{item.answer}</p>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Proof Generation Guide Overlay */}
+      {showProofGuide && (
+        <div className="overlay">
+          <div className="proof-guide-container">
+            <div className="proof-guide-header">
+              <h2>How to Generate a Proof</h2>
+              <button className="close-button" onClick={toggleProofGuide}>
+                <CloseIcon />
+              </button>
+            </div>
+            <div className="proof-guide-content">
+              {proofGenerationSteps.map((step, index) => (
+                <div key={index} className="proof-guide-step">
+                  <h3>{step.title}</h3>
+                  <p style={{ textAlign: 'left' }}>{step.content}</p>
+                  {step.code && (
+                    <div className="code-block">
+                      <pre style={{ textAlign: 'left' }}>{step.code}</pre>
+                      <button 
+                        className="copy-button"
+                        onClick={() => {
+                          navigator.clipboard.writeText(step.code || '');
+                          alert('Code copied to clipboard!');
+                        }}
+                      >
+                        Copy
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

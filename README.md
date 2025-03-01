@@ -85,6 +85,49 @@ The application attempts verification using three methods in order of reliabilit
 3. **Verify**: Click the "Verify Proof" button to check if the proof is valid
 4. **View Results**: The application will display whether the person is 18+ or not, along with verification details
 
+## Generating Proof Files
+
+To use this application, you need to generate a proof.json file that verifies your age without revealing it. Follow these steps:
+
+### Prerequisites
+
+- Node.js (v14+)
+- snarkjs (install globally with `npm install -g snarkjs`)
+
+### Steps to Generate a Proof
+
+1. **Create an input.json file** with your birth date and current date:
+   ```json
+   {
+     "birthYear": 1990,
+     "birthMonth": 7,
+     "birthDay": 7,
+     "currentYear": 2023,
+     "currentMonth": 2,
+     "currentDay": 28
+   }
+   ```
+   
+   > **Note**: Replace the values with your actual birth date and the current date. The application will verify if you are 18 years or older without revealing your actual age.
+
+2. **Generate a witness file** using the provided circuit:
+   ```bash
+   node others/age_js/generate_witness.js others/age_js/age.wasm input.json witness.wtns
+   ```
+
+3. **Generate the proof** using the witness file:
+   ```bash
+   npx snarkjs groth16 prove build/ageCheck.zkey witness.wtns proof.json public.json
+   ```
+
+4. **Upload the proof.json file** to the application to verify your age.
+
+### Privacy Considerations
+
+- The proof.json file only proves that you are 18 years or older without revealing your actual birth date or age.
+- The verification is done entirely on the client-side, so your personal information never leaves your device.
+- The smart contract only verifies the mathematical proof, not your actual age data.
+
 ## Smart Contract
 
 The application interacts with a Verifier smart contract deployed at:
