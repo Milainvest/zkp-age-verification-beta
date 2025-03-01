@@ -140,22 +140,26 @@ body {
 }
 
 .tutorial-tooltip {
-  position: absolute;
-  background-color: white;
+  background-color: var(--card-bg);
   border-radius: 12px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-  width: 350px;
-  max-width: 90vw;
-  overflow: hidden;
-  animation: scaleIn 0.3s ease;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  padding: 24px;
+  max-width: 400px;
+  position: relative;
+  z-index: 1001;
+  animation: scale-in 0.3s ease-out;
 }
 
-.tutorial-tooltip::after {
-  content: '';
-  position: absolute;
-  width: 0;
-  height: 0;
-  border-style: solid;
+.tutorial-tooltip h3 {
+  margin: 0 0 12px 0;
+  font-size: 1.2rem;
+  color: var(--primary-color);
+}
+
+.tutorial-tooltip p {
+  margin: 0 0 20px 0;
+  line-height: 1.6;
+  color: var(--text-color);
 }
 
 .tutorial-position-top::after {
@@ -216,11 +220,32 @@ body {
 }
 
 .tutorial-navigation {
-  padding: 1rem;
-  border-top: 1px solid var(--border-color);
   display: flex;
-  flex-direction: column;
-  gap: 1rem;
+  justify-content: space-between;
+  margin-top: 16px;
+}
+
+.tutorial-nav-button {
+  display: flex;
+  align-items: center;
+  background-color: var(--secondary-button-bg);
+  color: var(--secondary-button-text);
+  border: none;
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.tutorial-nav-button:hover {
+  background-color: var(--secondary-button-hover);
+}
+
+.tutorial-nav-icon {
+  display: flex;
+  align-items: center;
+  margin: 0 4px;
 }
 
 .tutorial-progress {
@@ -292,16 +317,17 @@ body {
 }
 
 .faq-container {
-  background-color: white;
+  background-color: var(--card-bg);
   border-radius: 12px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-  width: 700px;
-  max-width: 90vw;
+  width: 90%;
+  max-width: 800px;
   max-height: 90vh;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  animation: scaleIn 0.3s ease;
+  overflow-y: auto;
+  position: relative;
+  z-index: 1001;
+  animation: scale-in 0.3s ease-out;
+  margin-top: 20px;
 }
 
 .faq-header {
@@ -330,68 +356,46 @@ body {
 }
 
 .faq-content {
-  padding: 1rem;
+  padding: 16px;
   overflow-y: auto;
-  max-height: calc(90vh - 80px);
 }
 
 .faq-item {
-  margin-bottom: 1rem;
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  overflow: hidden;
-  transition: var(--transition);
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: 8px;
 }
 
-.faq-item.expanded {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  border-color: var(--primary-color);
+.faq-item:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
 }
 
-.faq-question {
-  padding: 1rem;
+.faq-item-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  padding: 16px;
   cursor: pointer;
-  background-color: #f9f9f9;
-  transition: var(--transition);
+  transition: background-color 0.2s;
 }
 
-.faq-item.expanded .faq-question {
-  background-color: #f0f7ff;
+.faq-item-header:hover {
+  background-color: var(--hover-bg);
 }
 
-.faq-question:hover {
-  background-color: #f0f7ff;
-}
-
-.faq-question h3 {
+.faq-item-header h3 {
   margin: 0;
-  font-size: 1.1rem;
+  font-size: 1rem;
   font-weight: 500;
   color: var(--text-color);
 }
 
-.faq-icon {
-  color: var(--primary-color);
-  transition: var(--transition);
-}
-
-.faq-item.expanded .faq-icon {
-  transform: rotate(180deg);
-}
-
-.faq-answer {
-  padding: 1rem;
-  border-top: 1px solid var(--border-color);
-  animation: slideDown 0.3s ease;
-}
-
-.faq-answer p {
-  margin: 0;
+.faq-item-content {
+  padding: 0 16px 16px;
+  color: var(--text-color);
   line-height: 1.6;
-  color: var(--text-secondary);
+  text-align: left;
+  white-space: pre-line;
 }
 
 /* Animations */
@@ -871,6 +875,7 @@ body {
   position: relative;
   z-index: 1001;
   animation: scale-in 0.3s ease-out;
+  margin-top: 20px;
 }
 
 .proof-guide-header {
@@ -906,6 +911,10 @@ body {
   line-height: 1.6;
 }
 
+.proof-guide-code {
+  text-align: left;
+}
+
 .code-block {
   background-color: var(--code-bg);
   border-radius: 8px;
@@ -924,7 +933,6 @@ body {
 }
 
 .copy-button {
-  align-self: flex-end;
   top: 8px;
   right: 8px;
   background-color: var(--secondary-button-bg);
@@ -948,4 +956,19 @@ body {
     --code-bg: #1e1e2e;
     --code-text: #f8f8f2;
   }
+}
+
+/* Overlay positioning */
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  padding: 20px;
 }

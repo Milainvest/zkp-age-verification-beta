@@ -1,88 +1,11 @@
 import { useState, useCallback, useEffect, useRef, DragEvent } from "react";
 import { ethers } from "ethers";
 import "./App.css";
+import { ProofData, VerificationStatus, TutorialStep, FAQItem, ProofGenerationStep } from "./types";
+import { CONTRACT_ADDRESS, CONTRACT_ABI } from "./constants";
 
-// Define types for the proof data
-interface ProofData {
-  pi_a: string[];
-  pi_b: string[][];
-  pi_c: string[];
-  publicSignals: string[];
-}
-
-// Define verification status type for better UI feedback
-type VerificationStatus = {
-  result: string | null;
-  isLoading: boolean;
-  ageVerified: boolean | null;
-  details: {
-    startTime?: number;
-    endTime?: number;
-    method?: string;
-    error?: string;
-    publicSignalValue?: string;
-  };
-};
-
-// Define tutorial step type
-type TutorialStep = {
-  title: string;
-  content: string;
-  position: 'top' | 'bottom' | 'left' | 'right';
-  style?: React.CSSProperties;
-};
-
-// Define FAQ item type
-type FAQItem = {
-  question: string;
-  answer: string;
-};
-
-// Add new type for the proof generation guide
-type ProofGenerationStep = {
-  title: string;
-  content: string;
-  code?: string;
-};
-
-const contractAddress: string = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
-const contractABI: any[] = [
-  // Paste the ABI of your Verifier.sol contract here
-  {
-    "inputs": [
-      {
-        "internalType": "uint256[2]",
-        "name": "_pA",
-        "type": "uint256[2]"
-      },
-      {
-        "internalType": "uint256[2][2]",
-        "name": "_pB",
-        "type": "uint256[2][2]"
-      },
-      {
-        "internalType": "uint256[2]",
-        "name": "_pC",
-        "type": "uint256[2]"
-      },
-      {
-        "internalType": "uint256[1]",
-        "name": "_pubSignals",
-        "type": "uint256[1]"
-      }
-    ],
-    "name": "verifyProof",
-    "outputs": [
-      {
-        "internalType": "bool",
-        "name": "",
-        "type": "bool"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  }
-];
+const contractAddress: string = CONTRACT_ADDRESS;
+const contractABI = CONTRACT_ABI;
 
 // Tutorial steps
 const tutorialSteps: TutorialStep[] = [
@@ -945,46 +868,35 @@ function App() {
       
       {/* Interactive Tutorial */}
       {showTutorial && (
-        <div className="tutorial-overlay" onClick={closeTutorial}>
-          <div 
-            className={`tutorial-tooltip tutorial-position-${tutorialSteps[currentTutorialStep].position}`} 
-            style={tutorialSteps[currentTutorialStep].style}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="tutorial-header">
-              <h3>{tutorialSteps[currentTutorialStep].title}</h3>
-              <button className="close-button" onClick={closeTutorial}>
-                <CloseIcon />
-              </button>
-            </div>
-            <div className="tutorial-content">
-              <p>{tutorialSteps[currentTutorialStep].content}</p>
-            </div>
+        <div className="overlay">
+          <div className="tutorial-tooltip" style={tutorialSteps[currentTutorialStep].style}>
+            <button className="close-button" onClick={closeTutorial}>
+              <CloseIcon />
+            </button>
+            <h3>{tutorialSteps[currentTutorialStep].title}</h3>
+            <p>{tutorialSteps[currentTutorialStep].content}</p>
             <div className="tutorial-navigation">
-              <div className="tutorial-progress">
-                {tutorialSteps.map((_, index) => (
-                  <div 
-                    key={index} 
-                    className={`tutorial-dot ${index === currentTutorialStep ? 'active' : ''}`}
-                  />
-                ))}
-              </div>
-              <div className="tutorial-buttons">
-                {currentTutorialStep > 0 && (
-                  <button className="tutorial-button" onClick={prevTutorialStep}>
-                    <ChevronLeftIcon /> Previous
-                  </button>
-                )}
-                {currentTutorialStep < tutorialSteps.length - 1 ? (
-                  <button className="tutorial-button primary" onClick={nextTutorialStep}>
-                    Next <ChevronRightIcon />
-                  </button>
-                ) : (
-                  <button className="tutorial-button primary" onClick={closeTutorial}>
-                    Got it!
-                  </button>
-                )}
-              </div>
+              {currentTutorialStep > 0 && (
+                <button className="tutorial-nav-button" onClick={prevTutorialStep}>
+                  <div className="tutorial-nav-icon">
+                    <ChevronLeftIcon />
+                  </div>
+                  Previous
+                </button>
+              )}
+              {currentTutorialStep < tutorialSteps.length - 1 && (
+                <button className="tutorial-nav-button" onClick={nextTutorialStep}>
+                  Next
+                  <div className="tutorial-nav-icon">
+                    <ChevronRightIcon />
+                  </div>
+                </button>
+              )}
+              {currentTutorialStep === tutorialSteps.length - 1 && (
+                <button className="tutorial-nav-button" onClick={closeTutorial}>
+                  Finish
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -992,8 +904,8 @@ function App() {
       
       {/* FAQ Section */}
       {showFAQ && (
-        <div className="faq-overlay" onClick={toggleFAQ}>
-          <div className="faq-container" onClick={(e) => e.stopPropagation()}>
+        <div className="overlay">
+          <div className="faq-container">
             <div className="faq-header">
               <h2>Frequently Asked Questions</h2>
               <button className="close-button" onClick={toggleFAQ}>
@@ -1002,19 +914,22 @@ function App() {
             </div>
             <div className="faq-content">
               {faqItems.map((item, index) => (
-                <div 
-                  key={index} 
-                  className={`faq-item ${expandedFAQ === index ? 'expanded' : ''}`}
-                >
-                  <div className="faq-question" onClick={() => toggleFAQItem(index)}>
+                <div key={index} className="faq-item">
+                  <div 
+                    className="faq-item-header" 
+                    onClick={() => toggleFAQItem(index)}
+                  >
                     <h3>{item.question}</h3>
-                    <span className="faq-icon">
+                    <div style={{ 
+                      transform: expandedFAQ === index ? 'rotate(180deg)' : 'rotate(0)', 
+                      transition: 'transform 0.3s ease' 
+                    }}>
                       <ChevronDownIcon />
-                    </span>
+                    </div>
                   </div>
                   {expandedFAQ === index && (
-                    <div className="faq-answer">
-                      <p style={{ textAlign: 'left' }}>{item.answer}</p>
+                    <div className="faq-item-content">
+                      {item.answer}
                     </div>
                   )}
                 </div>
@@ -1038,10 +953,10 @@ function App() {
               {proofGenerationSteps.map((step, index) => (
                 <div key={index} className="proof-guide-step">
                   <h3>{step.title}</h3>
-                  <p style={{ textAlign: 'left' }}>{step.content}</p>
+                  <p>{step.content}</p>
                   {step.code && (
                     <div className="code-block">
-                      <pre style={{ textAlign: 'left' }}>{step.code}</pre>
+                      <pre className="proof-guide-code">{step.code}</pre>
                       <button 
                         className="copy-button"
                         onClick={() => {
