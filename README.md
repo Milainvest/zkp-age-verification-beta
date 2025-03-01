@@ -120,7 +120,34 @@ To use this application, you need to generate a proof.json file that verifies yo
    npx snarkjs groth16 prove build/ageCheck.zkey witness.wtns proof.json public.json
    ```
 
-4. **Upload the proof.json file** to the application to verify your age.
+4. **Merge the proof.json and public.json files** (required for verification):
+   
+   Create a file named `merge-proof.js` with the following content:
+   ```javascript
+   const fs = require('fs');
+   
+   // Read the files
+   const proof = JSON.parse(fs.readFileSync('proof.json', 'utf8'));
+   const publicSignals = JSON.parse(fs.readFileSync('public.json', 'utf8'));
+   
+   // Merge them
+   const merged = {
+     ...proof,
+     publicSignals: publicSignals
+   };
+   
+   // Write the merged file
+   fs.writeFileSync('merged-proof.json', JSON.stringify(merged, null, 2));
+   
+   console.log('Files merged successfully! Upload merged-proof.json to the application.');
+   ```
+   
+   Then run the script:
+   ```bash
+   node merge-proof.js
+   ```
+
+5. **Upload the merged-proof.json file** to the application to verify your age.
 
 ### Privacy Considerations
 

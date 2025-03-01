@@ -49,7 +49,7 @@ const faqItems: FAQItem[] = [
   },
   {
     question: "How do I generate a proof.json file?",
-    answer: "The proof.json file is generated using the ZKP generation tools included in this project. Follow these steps:\n\n1. Open a terminal in the project root directory\n\n2. Create an input.json file with your birth date and current date (see example below):\n```json\n{\n  \"birthYear\": 1990,\n  \"birthMonth\": 7,\n  \"birthDay\": 7,\n  \"currentYear\": 2023,\n  \"currentMonth\": 2,\n  \"currentDay\": 28\n}\n```\n\n3. Generate a witness file:\n```bash\nnode others/age_js/generate_witness.js others/age_js/age.wasm input.json witness.wtns\n```\n\n4. Generate the proof:\n```bash\nnpx snarkjs groth16 prove build/ageCheck.zkey witness.wtns proof.json public.json\n```\n\nThe resulting proof.json file can then be uploaded to this application for verification. Note: Make sure to install snarkjs globally using `npm install -g snarkjs` if you haven't already."
+    answer: "The proof.json file is generated using the ZKP generation tools included in this project. Follow these steps:\n\n1. Open a terminal in the project root directory\n\n2. Create an input.json file with your birth date and current date (see example below):\n```json\n{\n  \"birthYear\": 1990,\n  \"birthMonth\": 7,\n  \"birthDay\": 7,\n  \"currentYear\": 2023,\n  \"currentMonth\": 2,\n  \"currentDay\": 28\n}\n```\n\n3. Generate a witness file:\n```bash\nnode others/age_js/generate_witness.js others/age_js/age.wasm input.json witness.wtns\n```\n\n4. Generate the proof:\n```bash\nnpx snarkjs groth16 prove build/ageCheck.zkey witness.wtns proof.json public.json\n```\n\n5. Merge the proof.json and public.json files (required for verification):\n```javascript\n// Save as merge-proof.js and run with: node merge-proof.js\nconst fs = require('fs');\nconst proof = JSON.parse(fs.readFileSync('proof.json', 'utf8'));\nconst publicSignals = JSON.parse(fs.readFileSync('public.json', 'utf8'));\nconst merged = {\n  ...proof,\n  publicSignals: publicSignals\n};\nfs.writeFileSync('merged-proof.json', JSON.stringify(merged, null, 2));\n```\n\nThe resulting merged-proof.json file can then be uploaded to this application for verification. Note: Make sure to install snarkjs globally using `npm install -g snarkjs` if you haven't already."
   },
   {
     question: "Is my personal information safe?",
@@ -601,12 +601,22 @@ function App() {
     },
     {
       title: "Step 3: Generate Proof",
-      content: "Generate the final proof using the witness file. This creates the proof.json file that you'll upload to the application.",
+      content: "Generate the final proof using the witness file. This creates the proof.json and public.json files.",
       code: "npx snarkjs groth16 prove build/ageCheck.zkey witness.wtns proof.json public.json"
     },
     {
-      title: "Step 4: Upload Proof",
-      content: "Upload the generated proof.json file to this application to verify your age. The application will only know whether you are 18+ or not, without learning your actual age or birth date."
+      title: "Step 4: Merge Proof Files",
+      content: "The verification requires a merged file that contains both the proof and public signals. Use the following Node.js script to merge the files:",
+      code: "// Save this as merge-proof.js\nconst fs = require('fs');\n\n// Read the files\nconst proof = JSON.parse(fs.readFileSync('proof.json', 'utf8'));\nconst publicSignals = JSON.parse(fs.readFileSync('public.json', 'utf8'));\n\n// Merge them\nconst merged = {\n  ...proof,\n  publicSignals: publicSignals\n};\n\n// Write the merged file\nfs.writeFileSync('merged-proof.json', JSON.stringify(merged, null, 2));\n\nconsole.log('Files merged successfully! Upload merged-proof.json to the application.');"
+    },
+    {
+      title: "Step 5: Run the Merge Script",
+      content: "Execute the merge script to create the final proof file that can be uploaded to the application.",
+      code: "node merge-proof.js"
+    },
+    {
+      title: "Step 6: Upload Merged Proof",
+      content: "Upload the generated merged-proof.json file to this application to verify your age. The application will only know whether you are 18+ or not, without learning your actual age or birth date."
     }
   ];
 
